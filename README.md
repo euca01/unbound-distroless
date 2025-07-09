@@ -19,7 +19,7 @@ This Docker container provides a minimal, secure, and high-performance [Unbound]
 ## 🚀 Build
 
 ```bash
-docker build -t unbound-dns:latest .
+docker build -t euca01/unbound-distroless:latest .
 ```
 
 ## 🧪 Test Locally
@@ -27,13 +27,13 @@ docker build -t unbound-dns:latest .
 Run the container and bind port 53 (UDP/TCP):
 
 ```bash
-docker run -d --name unbound \ 
+docker run -d --name unbound-distroless \
   --cap-drop=ALL   
   --cap-add=NET_BIND_SERVICE   
   --security-opt no-new-privileges   
   -p 53:53/udp 
   -p 53:53/tcp
-  unbound-dns:latest
+  euca01/unbound-distroless:latest
 ```
 
 
