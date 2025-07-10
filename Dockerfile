@@ -9,7 +9,8 @@ ENV UNBOUND_VER=1.23.0 \
 RUN apt-get update && apt-get install -y \
   build-essential curl ca-certificates \
   libevent-dev libssl-dev libexpat1-dev \
-  autoconf automake libtool pkg-config file
+  autoconf automake libtool pkg-config file \
+  libcap2-bin
 
 # Download and build Unbound
 WORKDIR /build
@@ -24,6 +25,9 @@ RUN curl -LO https://nlnetlabs.nl/downloads/unbound/unbound-${UNBOUND_VER}.tar.g
       --sysconfdir=/etc/unbound \
       --disable-chroot && \
     make -j"$(nproc)" && make install
+
+# Set capability to bind to port <1024 as non-root
+RUN setcap 'cap_net_bind_service=+ep' /opt/unbound/sbin/unbound
 
 # Copy fallback config
 COPY unbound.conf /etc/unbound/unbound.conf
@@ -56,5 +60,6 @@ COPY --from=build /deps /
 USER nonroot
 
 EXPOSE 53/udp 53/tcp
+EXPOSE 8953/tcp
 
 ENTRYPOINT ["/usr/local/sbin/unbound", "-d", "-c", "/etc/unbound/unbound.conf"]

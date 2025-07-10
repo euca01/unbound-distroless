@@ -27,14 +27,15 @@ docker build -t euca01/unbound-distroless:latest .
 Run the container and bind port 53 (UDP/TCP):
 
 ```bash
-docker run -d --name unbound-distroless \
-  --cap-drop=ALL   
-  --cap-add=NET_BIND_SERVICE   
-  --security-opt no-new-privileges   
-  -p 53:53/udp 
-  -p 53:53/tcp
+docker run -d --name unbound-distroless --restart unless-stopped \
+  --cap-drop=ALL   \
+  --cap-add=NET_BIND_SERVICE   \
+  --security-opt no-new-privileges   \
+  -p 53:53/udp \
+  -p 53:53/tcp\
   euca01/unbound-distroless:latest
 ```
+
 
 
 ## ⚙️ Configuration
