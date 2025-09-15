@@ -35,6 +35,17 @@ docker run -d --name unbound-distroless --restart unless-stopped \
   -p 53:53/tcp\
   euca01/unbound-distroless:latest
 ```
+or
+```bash
+docker run -d --name unbound-distroless --restart unless-stopped \
+  --cap-drop=ALL \
+  --cap-add=NET_BIND_SERVICE \
+  --security-opt no-new-privileges \
+  --network=host \
+  -v /opt/unbound.conf:/etc/unbound/unbound.conf:ro \
+  euca01/unbound-distroless:latest
+```
+
 
 
 
@@ -59,14 +70,6 @@ This image includes only necessary shared libraries and Unbound binaries.
 
 Perfect for production environments focused on minimal attack surface.
 
-## 🛠️ Debugging
-
-To debug, rebuild the image from the `build` stage with:
-
-```bash
-docker build --target build -t unbound-dns-dev .
-docker run -it --rm unbound-dns-dev /bin/bash
-```
 
 ## 📁 Persistent DNSSEC Root Key
 

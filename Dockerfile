@@ -2,7 +2,7 @@
 FROM --platform=$BUILDPLATFORM debian:bookworm AS build
 
 ARG TARGETARCH
-ENV UNBOUND_VER=1.23.0 \
+ENV UNBOUND_VER=1.23.1 \
     DEBIAN_FRONTEND=noninteractive
 
 # Install build tools and libraries
