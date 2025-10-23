@@ -1,5 +1,5 @@
 # Stage 1: Build Unbound from source and collect dependencies
-FROM --platform=$BUILDPLATFORM debian:bookworm AS build
+FROM --platform=$BUILDPLATFORM debian:trixie AS build
 
 ARG TARGETARCH
 ENV UNBOUND_VER=1.24.1 \
@@ -49,21 +49,34 @@ RUN ls -l ./staging/var-lib-unbound && stat ./staging/var-lib-unbound/root.key &
     ln -s /build/staging/var-lib-unbound /var/lib/unbound && \
     /opt/unbound/sbin/unbound-checkconf /etc/unbound/unbound.conf
 
-# Collect dynamic libs using ldd
-RUN mkdir -p /deps && \
-    ldd /opt/unbound/sbin/unbound | awk '{print $3}' | grep -E '^/' | xargs -r -I{} cp --parents {} /deps && \
-    ldd /opt/unbound/sbin/unbound | awk '/ld-linux/ {print $1}' | xargs -r -I{} cp --parents {} /deps && \
-    cp --parents -r /etc/ssl/certs /deps
+# Collect runtime libs as real files with SONAME filenames
+RUN set -eux; \
+    mkdir -p /deps_bundle/lib; \
+    need_libs() { \
+      ldd "$1" | awk '{print $3}' | grep -E '^/'; \
+      ldd "$1" | awk '/ld-linux/ {print $1}'; \
+    }; \
+    for b in /opt/unbound/sbin/unbound /opt/unbound/sbin/unbound-control /opt/unbound/sbin/unbound-anchor; do \
+      for lib in $(need_libs "$b"); do \
+        base="$(basename "$lib")"; \
+        # copy the dereferenced target as a *regular file* named by SONAME
+        cp -aL "$lib" "/deps_bundle/lib/$base" || true; \
+      done; \
+    done; \
+    # CA bundle for TLS
+    mkdir -p /deps_bundle/certs && cp -a /etc/ssl/certs /deps_bundle/certs/
 
 # Stage 2: Distroless runtime
-FROM gcr.io/distroless/base-debian12:nonroot
+FROM gcr.io/distroless/base-debian13:nonroot
 
 WORKDIR /
 
 COPY --from=build /opt/unbound /usr/local
 COPY --from=build /etc/unbound /etc/unbound
 COPY --from=build --chown=65532:65532 /build/staging/var-lib-unbound /var/lib/unbound
-COPY --from=build /deps /
+COPY --from=build /deps_bundle/lib /usr/lib
+COPY --from=build /deps_bundle/certs/certs /etc/ssl/certs
+ENV LD_LIBRARY_PATH=/usr/lib:/usr/local/lib
 
 USER nonroot
 
