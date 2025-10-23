@@ -2,7 +2,7 @@
 FROM --platform=$BUILDPLATFORM debian:bookworm AS build
 
 ARG TARGETARCH
-ENV UNBOUND_VER=1.23.1 \
+ENV UNBOUND_VER=1.24.1 \
     DEBIAN_FRONTEND=noninteractive
 
 # Install build tools and libraries
@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y \
   build-essential curl ca-certificates \
   libevent-dev libssl-dev libexpat1-dev \
   autoconf automake libtool pkg-config file \
-  libcap2-bin
+  libcap2-bin openssl
 
 # Download and build Unbound
 WORKDIR /build
@@ -33,11 +33,19 @@ RUN setcap 'cap_net_bind_service=+ep' /opt/unbound/sbin/unbound
 COPY unbound.conf /etc/unbound/unbound.conf
 RUN curl -o /etc/unbound/root.hints https://www.internic.net/domain/named.cache
 
+
+# Generate remote-control certs/keys (needed by your unbound.conf)
+RUN /opt/unbound/sbin/unbound-control-setup -d /etc/unbound
+
 # Root key
 COPY build-rootkey/root.key /tmp/root.key
 RUN mkdir -p /build/staging/var-lib-unbound && \
-    mv /tmp/root.key /build/staging/var-lib-unbound/root.key && \
-    chown -R 65532:65532 /build/staging/var-lib-unbound && \
+    cp /tmp/root.key /build/staging/var-lib-unbound/root.key && \
+    chown -R 65532:65532 /build/staging/var-lib-unbound/root.key && \
+    ln -s /build/staging/var-lib-unbound /var/lib/unbound && \
+    /opt/unbound/sbin/unbound-checkconf /etc/unbound/unbound.conf
+
+RUN ls -l ./staging/var-lib-unbound && stat ./staging/var-lib-unbound/root.key && \
     ln -s /build/staging/var-lib-unbound /var/lib/unbound && \
     /opt/unbound/sbin/unbound-checkconf /etc/unbound/unbound.conf
 

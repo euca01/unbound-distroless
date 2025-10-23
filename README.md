@@ -5,7 +5,7 @@ This Docker container provides a minimal, secure, and high-performance [Unbound]
 ## 🔒 Key Features
 
 - Based on `distroless/base-debian12:nonroot`
-- Built from Unbound **v1.23.0** source
+- Built from Unbound **v1.23.1** source
 - Hardened configuration with:
   - DNSSEC validation
   - Limited access control
